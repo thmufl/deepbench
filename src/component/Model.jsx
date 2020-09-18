@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layers from "./Layers";
 import * as tf from "@tensorflow/tfjs";
 import PropTypes from "prop-types";
@@ -13,7 +13,20 @@ const Model = (props) => {
     },
   });
 
+  const [info, setInfo] = useState({});
+
   const [epochs, setEpochs] = useState(250);
+
+  useEffect(() => {
+    const path = "tensorflowjs_models/my-model/";
+
+    if (localStorage.getItem(path + "model_topology")) {
+      setInfo(JSON.parse(localStorage.getItem(path + "info")));
+      setModelTopology(
+        JSON.parse(localStorage.getItem(path + "model_topology"))
+      );
+    }
+  }, []);
 
   const trainData = [
     [0, 0],
@@ -51,10 +64,17 @@ const Model = (props) => {
     setEpochs(value);
   };
 
-  async function save() {
+  async function handleSave() {
     const model = await tf.loadLayersModel(tf.io.fromMemory(modelTopology));
-    const saveResults = await model.save("localstorage://my-model");
-    console.log("saveResults", saveResults);
+    const result = await model.save("localstorage://my-model");
+    console.log("saved:", result.modelArtifactsInfo);
+    setInfo(result.modelArtifactsInfo);
+  }
+
+  async function handleRemove() {
+    const result = tf.io.removeModel("localstorage://my-model");
+    console.log("removed:", result.modelArtifactsInfo);
+    setInfo(result.modelArtifactsInfo);
   }
 
   const handleAddLayer = (className, config) => {
@@ -66,7 +86,7 @@ const Model = (props) => {
     setModelTopology(t);
   };
 
-  async function train() {
+  async function handleTrain() {
     const model = await tf.loadLayersModel(tf.io.fromMemory(modelTopology));
     console.log("train model", model);
     model.compile({
@@ -98,13 +118,26 @@ const Model = (props) => {
         Class: {modelTopology.class_name}
         <br />
         Name: {modelTopology.config.name}
+        <br />
+        Saved: {info && info.dateSaved ? info.dateSaved.toString() : ""}
       </p>
+      <h2>Layers</h2>
+      <Layers modelTopology={modelTopology} />
+      <button
+        className="btn btn-primary btn-sm"
+        onClick={() =>
+          handleAddLayer("Dense", {
+            name: "Dense_" + modelTopology.config.layers.length,
+            activation: "tanh",
+            batch_input_shape:
+              modelTopology.config.layers.length === 0 ? [null, 2] : null,
+          })
+        }
+      >
+        Add Layer
+      </button>
 
-      <Layers
-        modelTopology={modelTopology}
-        onAddLayer={handleAddLayer}
-      ></Layers>
-      <h3>Model Topology</h3>
+      <h2>Model Topology</h2>
       <p>
         ModelTopology: {modelTopology ? JSON.stringify(modelTopology) : "none"}
       </p>
@@ -127,15 +160,18 @@ const Model = (props) => {
       </form>
 
       <div className="btn-group" role="group" aria-label="Actions">
-        <button className="btn btn-primary" onClick={save}>
+        <button className="btn btn-primary" onClick={handleSave}>
           Save
         </button>
         <button
           className="btn btn-primary"
-          onClick={train}
+          onClick={handleTrain}
           disabled={modelTopology.config.layers.length < 1}
         >
           Train
+        </button>
+        <button className="btn btn-primary btn-warning" onClick={handleRemove}>
+          Remove
         </button>
       </div>
     </div>
