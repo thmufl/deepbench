@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
+import Form from "react-bootstrap/Form";
+import Button from "react-bootstrap/Button";
+import ButtonGroup from "react-bootstrap/ButtonGroup";
 import Layers from "./Layers";
+
 import * as tf from "@tensorflow/tfjs";
 import PropTypes from "prop-types";
 import { model } from "@tensorflow/tfjs";
@@ -123,7 +127,7 @@ const Model = (props) => {
       </p>
       <h2>Layers</h2>
       <Layers modelTopology={modelTopology} />
-      <button
+      <Button
         className="btn btn-primary btn-sm"
         onClick={() =>
           handleAddLayer("Dense", {
@@ -135,45 +139,40 @@ const Model = (props) => {
         }
       >
         Add Layer
-      </button>
+      </Button>
 
       <h2>Model Topology</h2>
       <p>
         ModelTopology: {modelTopology ? JSON.stringify(modelTopology) : "none"}
       </p>
 
-      <form>
-        <div className="form-group row">
-          <label htmlFor="inputEpochs">Epocs</label>
-          <input
+      <Form>
+        <Form.Group controlId="formModel">
+          <Form.Label>Epocs</Form.Label>
+          <Form.Control
+            placeholder="Number of epocs to train"
             type="number"
-            className="form-control"
-            id="inputEpochs"
             value={epochs}
             onChange={(e) => handleOnChange("epochs", +e.currentTarget.value)}
-            aria-describedby="epochsHelp"
-          ></input>
-          <small id="epochsHelp" className="form-text text-muted">
-            The number of epochs to train.
-          </small>
-        </div>
-      </form>
+          ></Form.Control>
+        </Form.Group>
+      </Form>
 
-      <div className="btn-group" role="group" aria-label="Actions">
-        <button className="btn btn-primary" onClick={handleSave}>
+      <ButtonGroup aria-label="Model actions">
+        <Button variant="primary" onClick={handleSave}>
           Save
-        </button>
-        <button
-          className="btn btn-primary"
+        </Button>
+        <Button
+          variant="primary"
           onClick={handleTrain}
           disabled={modelTopology.config.layers.length < 1}
         >
           Train
-        </button>
-        <button className="btn btn-primary btn-warning" onClick={handleRemove}>
+        </Button>
+        <Button variant="primary" onClick={handleRemove}>
           Remove
-        </button>
-      </div>
+        </Button>
+      </ButtonGroup>
     </div>
   );
 };

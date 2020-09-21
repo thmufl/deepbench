@@ -1,9 +1,9 @@
 import React from "react";
 import { Route, Switch, Redirect } from "react-router-dom";
 
-import NavBar from "./component/NavBar";
-import Model from "./component/Model";
-import LayerForm from "./component/LayerForm";
+import NavBar from "./components/NavBar";
+import Model from "./components/Model";
+import LayerForm from "./components/LayerForm";
 
 import "./App.css";
 
