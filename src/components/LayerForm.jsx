@@ -3,7 +3,7 @@ import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 
-import * as tf from "@tensorflow/tfjs";
+import ModelService from "../services/ModelService";
 
 const LayerForm = (props) => {
   const modelTopology = props.location.state.modelTopology;
@@ -11,25 +11,29 @@ const LayerForm = (props) => {
 
   const [layer, setLayer] = useState(modelTopology.config.layers[layerIndex]);
 
-  async function handleSave() {
+  const handleSave = async () => {
     modelTopology.config.layers[layerIndex] = layer;
-    const model = await tf.loadLayersModel(tf.io.fromMemory(modelTopology));
-    const result = await model.save("localstorage://my-model");
+    let result = ModelService.save(
+      modelTopology,
+      `localstorage://${modelTopology.config.name}`
+    );
     console.log("saved:", result.modelArtifactsInfo);
-    props.history.replace("/model");
-  }
+    props.history.replace(`/models/${modelTopology.config.name}`);
+  };
 
-  async function handleDelete() {
+  const handleDelete = async () => {
     modelTopology.config.layers.splice(layerIndex, 1);
-    const model = await tf.loadLayersModel(tf.io.fromMemory(modelTopology));
-    const result = await model.save("localstorage://my-model");
+    let result = ModelService.save(
+      modelTopology,
+      `localstorage://${modelTopology.config.name}`
+    );
     console.log("deleted:", result.modelArtifactsInfo);
-    props.history.replace("/model");
-  }
+    props.history.replace(`/models/${modelTopology.config.name}`);
+  };
 
-  function handleCancel() {
-    props.history.replace("/model");
-  }
+  const handleCancel = () => {
+    props.history.replace(`/models/${modelTopology.config.name}`);
+  };
 
   const handleOnChange = (name, value) => {
     console.log("handleOnChange", name, value);
@@ -39,13 +43,11 @@ const LayerForm = (props) => {
   };
 
   return (
-    <div className="container">
-      <h1>Layer: {layerIndex}</h1>
+    <React.Fragment>
       <Form>
         <Form.Group controlId="formLayerClassName">
           <Form.Label>Class Name</Form.Label>
           <Form.Control
-            disabled
             type="text"
             value={layer.class_name}
             placeholder="Class name"
@@ -102,7 +104,7 @@ const LayerForm = (props) => {
       <Button variant="primary" onClick={handleCancel}>
         Cancel
       </Button>
-    </div>
+    </React.Fragment>
   );
 };
 

@@ -12,7 +12,7 @@ const Layers = (props) => {
         <LinkContainer
           key={index}
           to={{
-            pathname: `/layers/${index}`,
+            pathname: `/models/${props.modelTopology.config.name}/layers/${index}`,
             state: { modelTopology: props.modelTopology },
           }}
         >

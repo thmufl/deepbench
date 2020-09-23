@@ -4,33 +4,33 @@ import Button from "react-bootstrap/Button";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 import Layers from "./Layers";
 
+import ModelService from "../services/ModelService";
+
 import * as tf from "@tensorflow/tfjs";
 import PropTypes from "prop-types";
-import { model } from "@tensorflow/tfjs";
 
 const Model = (props) => {
+  const [name, setName] = useState(props.match.params.name || "new-model");
+
   const [modelTopology, setModelTopology] = useState({
     class_name: "Sequential",
     config: {
-      name: "my-model",
+      name: name,
       layers: [],
     },
   });
 
   const [info, setInfo] = useState({});
 
+  const [optimizer, setOptimizer] = useState("sgd");
   const [epochs, setEpochs] = useState(250);
 
   useEffect(() => {
-    const path = "tensorflowjs_models/my-model/";
-
-    if (localStorage.getItem(path + "model_topology")) {
-      setInfo(JSON.parse(localStorage.getItem(path + "info")));
-      setModelTopology(
-        JSON.parse(localStorage.getItem(path + "model_topology"))
-      );
-    }
-  }, []);
+    setInfo(ModelService.getModelArtifact(`localstorage://${name}/info`));
+    setModelTopology(
+      ModelService.getModelArtifact(`localstorage://${name}/model_topology`)
+    );
+  }, [name, setInfo, setModelTopology]);
 
   const trainData = [
     [0, 0],
@@ -48,38 +48,49 @@ const Model = (props) => {
   ];
   const testLabels = [[0], [1], [1], [0]];
 
-  function getTrainData() {
+  const getTrainData = () => {
     const xs = tf.tensor2d(trainData);
     const labels = tf.tensor2d(trainLabels);
     return { xs, labels };
-  }
+  };
 
-  function getTestData() {
+  const getTestData = () => {
     const xs = tf.tensor2d(testData);
     const labels = tf.tensor2d(testLabels);
     return { xs, labels };
-  }
-
-  function onEpochEnd(batch, logs) {
-    if (batch % 50 === 0) console.log("onEpochEnd: ", batch, logs);
-  }
-
-  const handleOnChange = (name, value) => {
-    setEpochs(value);
   };
 
-  async function handleSave() {
-    const model = await tf.loadLayersModel(tf.io.fromMemory(modelTopology));
-    const result = await model.save("localstorage://my-model");
+  const onEpochEnd = (batch, logs) => {
+    if (batch % 50 === 0) console.log("onEpochEnd: ", batch, logs);
+  };
+
+  const handleOnChange = (name, value) => {
+    switch (name) {
+      case "epochs":
+        setEpochs(value);
+        break;
+      case "optimizer":
+        setOptimizer(value);
+        break;
+      default:
+        throw new Error("No such property: " + name);
+    }
+  };
+
+  const handleSave = async () => {
+    const result = await ModelService.save(
+      modelTopology,
+      `localstorage://${name}`
+    );
     console.log("saved:", result.modelArtifactsInfo);
     setInfo(result.modelArtifactsInfo);
-  }
+  };
 
-  async function handleRemove() {
-    const result = tf.io.removeModel("localstorage://my-model");
+  const handleRemove = async () => {
+    const result = ModelService.remove(`localstorage://${name}`);
     console.log("removed:", result.modelArtifactsInfo);
-    setInfo(result.modelArtifactsInfo);
-  }
+    props.history.replace("/models");
+  };
 
   const handleAddLayer = (className, config) => {
     let t = { ...modelTopology };
@@ -88,11 +99,19 @@ const Model = (props) => {
       config: config,
     });
     setModelTopology(t);
+
+    props.history.replace({
+      pathname: `/models/${name}/layers/${t.config.layers.length - 1}`,
+      state: { modelTopology: modelTopology },
+    });
   };
 
   async function handleTrain() {
-    const model = await tf.loadLayersModel(tf.io.fromMemory(modelTopology));
+    const model = await tf.loadLayersModel(
+      tf.io.fromMemory({ modelTopology: modelTopology })
+    );
     console.log("train model", model);
+
     model.compile({
       optimizer: "sgd", // sgd, adam, adamax, adagrad, rmsprop
       loss: "meanSquaredError", // meanSquaredError, sigmoidCrossEntropy, categoricalCrossentropy
@@ -147,6 +166,21 @@ const Model = (props) => {
       </p>
 
       <Form>
+        <Form.Group controlId="formOptimizer">
+          <Form.Label>Optimizer</Form.Label>
+          <Form.Control
+            as="select"
+            value={optimizer}
+            onChange={(e) => handleOnChange("optimizer", e.currentTarget.value)}
+          >
+            <option>sgd</option>
+            <option>adam</option>
+            <option>adamax</option>
+            <option>adagrad</option>
+            <option>rmsprop</option>
+          </Form.Control>
+        </Form.Group>
+
         <Form.Group controlId="formModel">
           <Form.Label>Epocs</Form.Label>
           <Form.Control
